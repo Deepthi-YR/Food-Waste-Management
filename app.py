@@ -144,11 +144,12 @@ import streamlit as st
 st.title("SQL Analysis")
 
 queries = {
-    "Providers per City":
-    SELECT City,
-           COUNT(*) Total_Providers
-    FROM providers
-    GROUP BY City
+    "Providers per City": """
+        SELECT City,
+               COUNT(*) AS Total_Providers
+        FROM providers
+        GROUP BY City
+    """
 }
 
 selected = st.selectbox(
