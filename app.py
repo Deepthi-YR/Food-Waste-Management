@@ -109,7 +109,9 @@ st.plotly_chart(fig2)
 
 # ---------------- SQL Analysis ----------------
 
-    st.header("SQL Analysis")
+    elif menu == "SQL Analysis":
+
+    st.header("SQL Analysis - All 15 Queries")
 
     queries = {
 
