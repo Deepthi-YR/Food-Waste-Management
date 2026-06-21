@@ -93,8 +93,8 @@ if submit:
     cursor = conn.cursor()
 
     cursor.execute(
-        INSERT INTO providers,
-        (Provider_ID,Name,Type,City,Contact)
+        INSERT INTO providers
+        (Provider_ID,Name,Type,City,Contact),
         VALUES(%s,%s,%s,%s,%s),(pid,name,ptype,city,contact))
 
     conn.commit()
