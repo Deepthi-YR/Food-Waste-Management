@@ -54,11 +54,10 @@ food_type = st.selectbox(
     ["All","Vegetarian","Non-Vegetarian","Vegan"]
 )
 
-query = f"""
+query = f
 SELECT *
 FROM food_listings
 WHERE Location='{city}'
-"""
 
 df = run_query(query)
 
@@ -92,11 +91,10 @@ if submit:
 
     cursor = conn.cursor()
 
-    cursor.execute("""
+    cursor.execute(
         INSERT INTO providers
         (Provider_ID,Name,Type,City,Contact)
-        VALUES(%s,%s,%s,%s,%s)
-    """,(pid,name,ptype,city,contact))
+        VALUES(%s,%s,%s,%s,%s),(pid,name,ptype,city,contact))
 
     conn.commit()
 
@@ -112,7 +110,7 @@ SELECT City,
 COUNT(*) Total_Providers
 FROM providers
 GROUP BY City
-""")
+)
 
 fig = px.bar(
     df,
@@ -124,12 +122,12 @@ fig = px.bar(
 st.plotly_chart(fig)
 
 claim status distribution
-df = run_query("""
+df = run_query(
 SELECT Status,
 COUNT(*) Count
 FROM claims
 GROUP BY Status
-""")
+)
 
 fig = px.pie(
     df,
@@ -158,4 +156,3 @@ selected = st.selectbox(
 
 df = run_query(queries[selected])
 
-st.dataframe(df)
