@@ -54,12 +54,13 @@ food_type = st.selectbox(
     ["All","Vegetarian","Non-Vegetarian","Vegan"]
 )
 
-query = f
-SELECT * 
+query = """
+SELECT *
 FROM food_listings
-WHERE Location=city
+WHERE Location = %s
+"""
 
-df = run_query(query)
+df = run_query(query, (city,))
 
 if food_type != "All":
     df = df[df["Food_Type"] == food_type]
