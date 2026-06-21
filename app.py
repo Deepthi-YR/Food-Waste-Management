@@ -2,6 +2,8 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 
+from database import run_query, get_connection
+
 st.set_page_config(
     page_title="Food Wastage Management System",
     layout="wide"
@@ -9,118 +11,309 @@ st.set_page_config(
 
 st.title("🍲 Local Food Wastage Management System")
 
-st.write("Use the sidebar to navigate through the application.")
-
-# ---------------- Dashboard ----------------
-
-st.header("Dashboard")
-
-providers = 25
-receivers = 18
-food = 500
-claims = 45
-
-c1, c2, c3, c4 = st.columns(4)
-
-c1.metric("Providers", providers)
-c2.metric("Receivers", receivers)
-c3.metric("Food Quantity", food)
-c4.metric("Claims", claims)
-
-# ---------------- Food Search ----------------
-
-st.header("Food Availability Search")
-
-sample_data = pd.DataFrame({
-    "Location": ["Bangalore", "Chennai", "Bangalore", "Mumbai"],
-    "Food_Type": ["Vegetarian", "Vegan", "Non-Vegetarian", "Vegetarian"],
-    "Quantity": [100, 50, 75, 60]
-})
-
-city = st.selectbox(
-    "Select City",
-    sample_data["Location"].unique()
+menu = st.sidebar.selectbox(
+    "Menu",
+    [
+        "Dashboard",
+        "Food Search",
+        "Add Provider",
+        "SQL Analysis"
+    ]
 )
 
-food_type = st.selectbox(
-    "Food Type",
-    ["All", "Vegetarian", "Non-Vegetarian", "Vegan"]
-)
+# =====================================================
+# DASHBOARD
+# =====================================================
 
-df = sample_data[sample_data["Location"] == city]
+if menu == "Dashboard":
 
-if food_type != "All":
-    df = df[df["Food_Type"] == food_type]
+    st.header("Dashboard")
 
-st.dataframe(df)
+    providers = run_query(
+        "SELECT COUNT(*) AS total FROM providers"
+    )
 
-# ---------------- CRUD ----------------
+    receivers = run_query(
+        "SELECT COUNT(*) AS total FROM receivers"
+    )
 
-st.header("Provider Entry Form")
+    food = run_query(
+        "SELECT SUM(Quantity) AS total FROM food_listings"
+    )
 
-with st.form("provider_form"):
+    claims = run_query(
+        "SELECT COUNT(*) AS total FROM claims"
+    )
 
-    pid = st.number_input("Provider ID", step=1)
+    c1, c2, c3, c4 = st.columns(4)
 
-    name = st.text_input("Provider Name")
+    c1.metric("Providers", providers.iloc[0, 0])
+    c2.metric("Receivers", receivers.iloc[0, 0])
+    c3.metric("Food Quantity", food.iloc[0, 0])
+    c4.metric("Claims", claims.iloc[0, 0])
 
-    ptype = st.text_input("Provider Type")
+# =====================================================
+# FOOD SEARCH
+# =====================================================
 
-    city_input = st.text_input("City")
+elif menu == "Food Search":
 
-    contact = st.text_input("Contact")
+    st.header("Food Availability Search")
 
-    submit = st.form_submit_button("Add Provider")
+    city_df = run_query(
+        "SELECT DISTINCT Location FROM food_listings"
+    )
 
-if submit:
-    st.success("Provider Added Successfully")
+    city = st.selectbox(
+        "Select City",
+        city_df["Location"]
+    )
 
-# ---------------- Visualizations ----------------
+    food_type = st.selectbox(
+        "Food Type",
+        ["All", "Vegetarian", "Non-Vegetarian", "Vegan"]
+    )
 
-st.header("Visualizations")
+    query = f"""
+    SELECT *
+    FROM food_listings
+    WHERE Location='{city}'
+    """
 
-provider_df = pd.DataFrame({
-    "City": ["Bangalore", "Chennai", "Mumbai"],
-    "Total_Providers": [12, 8, 10]
-})
+    df = run_query(query)
 
-fig = px.bar(
-    provider_df,
-    x="City",
-    y="Total_Providers",
-    title="Providers by City"
-)
+    if food_type != "All":
+        df = df[df["Food_Type"] == food_type]
 
-st.plotly_chart(fig)
+    st.dataframe(df)
 
-claim_df = pd.DataFrame({
-    "Status": ["Pending", "Approved", "Rejected"],
-    "Count": [15, 25, 5]
-})
+# =====================================================
+# CRUD
+# =====================================================
 
-fig2 = px.pie(
-    claim_df,
-    values="Count",
-    names="Status",
-    title="Claim Status Distribution"
-)
+elif menu == "Add Provider":
 
-st.plotly_chart(fig2)
+    st.header("Add Provider")
 
-# ---------------- SQL Analysis ----------------
+    with st.form("provider_form"):
 
-st.header("SQL Analysis")
+        pid = st.number_input(
+            "Provider ID",
+            step=1
+        )
 
-queries = {
-    "Providers per City": pd.DataFrame({
-        "City": ["Bangalore", "Chennai", "Mumbai"],
-        "Total_Providers": [12, 8, 10]
-    })
-}
+        name = st.text_input(
+            "Provider Name"
+        )
 
-selected = st.selectbox(
-    "Choose Query",
-    list(queries.keys())
-)
+        ptype = st.text_input(
+            "Provider Type"
+        )
 
-st.dataframe(queries[selected])
+        city = st.text_input(
+            "City"
+        )
+
+        contact = st.text_input(
+            "Contact"
+        )
+
+        submit = st.form_submit_button(
+            "Add Provider"
+        )
+
+    if submit:
+
+        conn = get_connection()
+
+        cursor = conn.cursor()
+
+        cursor.execute(
+            """
+            INSERT INTO providers
+            (Provider_ID, Name, Type, City, Contact)
+            VALUES (%s, %s, %s, %s, %s)
+            """,
+            (pid, name, ptype, city, contact)
+        )
+
+        conn.commit()
+
+        conn.close()
+
+        st.success(
+            "Provider Added Successfully"
+        )
+
+# =====================================================
+# SQL ANALYSIS
+# =====================================================
+
+elif menu == "SQL Analysis":
+
+    st.header("SQL Analysis")
+
+    queries = {
+
+        "1. Number of Providers in Each City":
+        """
+        SELECT City,
+               COUNT(*) AS Total_Providers
+        FROM providers
+        GROUP BY City
+        ORDER BY Total_Providers DESC
+        """,
+
+        "2. Number of Receivers in Each City":
+        """
+        SELECT City,
+               COUNT(*) AS Total_Receivers
+        FROM receivers
+        GROUP BY City
+        ORDER BY Total_Receivers DESC
+        """,
+
+        "3. Provider Type Contributing Most Food":
+        """
+        SELECT Provider_Type,
+               SUM(Quantity) AS Total_Food_Donated
+        FROM food_listings
+        GROUP BY Provider_Type
+        ORDER BY Total_Food_Donated DESC
+        """,
+
+        "4. Providers in Chicago":
+        """
+        SELECT Name,
+               Type,
+               Contact
+        FROM providers
+        WHERE City='Chicago'
+        """,
+
+        "5. Receivers Claiming Most Food":
+        """
+        SELECT r.Name,
+               COUNT(c.Claim_ID) AS Total_Claims
+        FROM receivers r
+        JOIN claims c
+        ON r.Receiver_ID=c.Receiver_ID
+        GROUP BY r.Name
+        ORDER BY Total_Claims DESC
+        """,
+
+        "6. Total Food Available":
+        """
+        SELECT SUM(Quantity) AS Total_Food_Available
+        FROM food_listings
+        """,
+
+        "7. City with Highest Food Listings":
+        """
+        SELECT Location,
+               COUNT(*) AS Listings
+        FROM food_listings
+        GROUP BY Location
+        ORDER BY Listings DESC
+        """,
+
+        "8. Most Common Food Types":
+        """
+        SELECT Food_Type,
+               COUNT(*) AS Count
+        FROM food_listings
+        GROUP BY Food_Type
+        ORDER BY Count DESC
+        """,
+
+        "9. Claims Made Per Food Item":
+        """
+        SELECT f.Food_Name,
+               COUNT(c.Claim_ID) AS Total_Claims
+        FROM food_listings f
+        LEFT JOIN claims c
+        ON f.Food_ID=c.Food_ID
+        GROUP BY f.Food_Name
+        ORDER BY Total_Claims DESC
+        """,
+
+        "10. Provider with Highest Successful Claims":
+        """
+        SELECT p.Name,
+               COUNT(*) AS Successful_Claims
+        FROM providers p
+        JOIN food_listings f
+        ON p.Provider_ID=f.Provider_ID
+        JOIN claims c
+        ON f.Food_ID=c.Food_ID
+        WHERE c.Status='Completed'
+        GROUP BY p.Name
+        ORDER BY Successful_Claims DESC
+        """,
+
+        "11. Claim Status Percentage":
+        """
+        SELECT Status,
+               ROUND(COUNT(*) * 100.0 /
+               (SELECT COUNT(*) FROM claims),2)
+               AS Percentage
+        FROM claims
+        GROUP BY Status
+        """,
+
+        "12. Average Quantity Claimed Per Receiver":
+        """
+        SELECT r.Name,
+               ROUND(AVG(f.Quantity),2)
+               AS Avg_Quantity
+        FROM receivers r
+        JOIN claims c
+        ON r.Receiver_ID=c.Receiver_ID
+        JOIN food_listings f
+        ON c.Food_ID=f.Food_ID
+        GROUP BY r.Name
+        ORDER BY Avg_Quantity DESC
+        """,
+
+        "13. Most Claimed Meal Type":
+        """
+        SELECT f.Meal_Type,
+               COUNT(*) AS Total_Claims
+        FROM food_listings f
+        JOIN claims c
+        ON f.Food_ID=c.Food_ID
+        GROUP BY f.Meal_Type
+        ORDER BY Total_Claims DESC
+        """,
+
+        "14. Total Quantity Donated by Each Provider":
+        """
+        SELECT p.Name,
+               SUM(f.Quantity) AS Total_Donated
+        FROM providers p
+        JOIN food_listings f
+        ON p.Provider_ID=f.Provider_ID
+        GROUP BY p.Name
+        ORDER BY Total_Donated DESC
+        """,
+
+        "15. Food Expiring Soon":
+        """
+        SELECT Food_Name,
+               Quantity,
+               Expiry_Date
+        FROM food_listings
+        WHERE Expiry_Date <= CURDATE() + INTERVAL 3 DAY
+        """
+    }
+
+    selected_query = st.selectbox(
+        "Choose Query",
+        list(queries.keys())
+    )
+
+    result = run_query(
+        queries[selected_query]
+    )
+
+    st.dataframe(result)
