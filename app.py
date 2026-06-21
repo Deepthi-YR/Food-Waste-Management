@@ -55,7 +55,8 @@ food_type = st.selectbox(
 )
 
 query = f
-SELECT * FROM food_listings
+SELECT * 
+FROM food_listings
 WHERE Location=city
 
 df = run_query(query)
