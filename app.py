@@ -1,4 +1,6 @@
 import streamlit as st
+import pandas as pd
+import plotly.express as px
 
 st.set_page_config(
     page_title="Food Wastage Management System",
@@ -7,115 +9,83 @@ st.set_page_config(
 
 st.title("🍲 Local Food Wastage Management System")
 
-st.write(
-    "Use the sidebar to navigate through the application."
-)
+st.write("Use the sidebar to navigate through the application.")
 
-import streamlit as st
+# ---------------- Dashboard ----------------
 
-st.title("Dashboard")
+st.header("Dashboard")
 
-providers = run_query(
-    "SELECT COUNT(*) total FROM providers"
-)
+providers = 25
+receivers = 18
+food = 500
+claims = 45
 
-receivers = run_query(
-    "SELECT COUNT(*) total FROM receivers"
-)
+c1, c2, c3, c4 = st.columns(4)
 
-food = run_query(
-    "SELECT SUM(Quantity) total FROM food_listings"
-)
+c1.metric("Providers", providers)
+c2.metric("Receivers", receivers)
+c3.metric("Food Quantity", food)
+c4.metric("Claims", claims)
 
-claims = run_query(
-    "SELECT COUNT(*) total FROM claims"
-)
+# ---------------- Food Search ----------------
 
-c1,c2,c3,c4 = st.columns(4)
+st.header("Food Availability Search")
 
-c1.metric("Providers", providers.iloc[0,0])
-c2.metric("Receivers", receivers.iloc[0,0])
-c3.metric("Food Quantity", food.iloc[0,0])
-c4.metric("Claims", claims.iloc[0,0])
-
-import streamlit as st
-
-st.title("Food Availability Search")
+sample_data = pd.DataFrame({
+    "Location": ["Bangalore", "Chennai", "Bangalore", "Mumbai"],
+    "Food_Type": ["Vegetarian", "Vegan", "Non-Vegetarian", "Vegetarian"],
+    "Quantity": [100, 50, 75, 60]
+})
 
 city = st.selectbox(
     "Select City",
-    run_query(
-        "SELECT DISTINCT Location FROM food_listings"
-    )["Location"]
+    sample_data["Location"].unique()
 )
 
 food_type = st.selectbox(
     "Food Type",
-    ["All","Vegetarian","Non-Vegetarian","Vegan"]
+    ["All", "Vegetarian", "Non-Vegetarian", "Vegan"]
 )
 
-query = """
-SELECT *
-FROM food_listings
-WHERE Location = %s
-"""
-
-df = run_query(query, (city,))
+df = sample_data[sample_data["Location"] == city]
 
 if food_type != "All":
     df = df[df["Food_Type"] == food_type]
 
 st.dataframe(df)
 
+# ---------------- CRUD ----------------
 
-import streamlit as st
-
-st.title("CRUD Operations")
+st.header("Provider Entry Form")
 
 with st.form("provider_form"):
 
-    pid = st.number_input("Provider ID")
+    pid = st.number_input("Provider ID", step=1)
 
     name = st.text_input("Provider Name")
 
     ptype = st.text_input("Provider Type")
 
-    city = st.text_input("City")
+    city_input = st.text_input("City")
 
     contact = st.text_input("Contact")
 
     submit = st.form_submit_button("Add Provider")
 
 if submit:
+    st.success("Provider Added Successfully")
 
-    conn = get_connection()
+# ---------------- Visualizations ----------------
 
-    cursor = conn.cursor()
+st.header("Visualizations")
 
-    cursor.execute(
-    "INSERT INTO providers (Provider_ID, Name, Type, City, Contact) VALUES (%s, %s, %s, %s, %s)",
-    (pid, name, ptype, city, contact)
-)
-
-    conn.commit()
-
-    conn.close()
-
-    st.success("Provider Added")
-
-import streamlit as st
-import plotly.express as px
-
-#Providers by city
-df = run_query("""
-SELECT City,
-       COUNT(*) AS Total_Providers
-FROM providers
-GROUP BY City
-""")
+provider_df = pd.DataFrame({
+    "City": ["Bangalore", "Chennai", "Mumbai"],
+    "Total_Providers": [12, 8, 10]
+})
 
 fig = px.bar(
-    df,
+    provider_df,
     x="City",
     y="Total_Providers",
     title="Providers by City"
@@ -123,33 +93,29 @@ fig = px.bar(
 
 st.plotly_chart(fig)
 
-#claim status distribution
-df = run_query("""
-SELECT Status,
-       COUNT(*) AS Count
-FROM claims
-GROUP BY Status
-""")
+claim_df = pd.DataFrame({
+    "Status": ["Pending", "Approved", "Rejected"],
+    "Count": [15, 25, 5]
+})
 
-fig = px.pie(
-    df,
+fig2 = px.pie(
+    claim_df,
     values="Count",
-    names="Status"
+    names="Status",
+    title="Claim Status Distribution"
 )
 
-st.plotly_chart(fig)
+st.plotly_chart(fig2)
 
-import streamlit as st
+# ---------------- SQL Analysis ----------------
 
-st.title("SQL Analysis")
+st.header("SQL Analysis")
 
 queries = {
-    "Providers per City": """
-        SELECT City,
-               COUNT(*) AS Total_Providers
-        FROM providers
-        GROUP BY City
-    """
+    "Providers per City": pd.DataFrame({
+        "City": ["Bangalore", "Chennai", "Mumbai"],
+        "Total_Providers": [12, 8, 10]
+    })
 }
 
 selected = st.selectbox(
@@ -157,5 +123,4 @@ selected = st.selectbox(
     list(queries.keys())
 )
 
-df = run_query(queries[selected])
-
+st.dataframe(queries[selected])
