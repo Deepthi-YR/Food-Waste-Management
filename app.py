@@ -107,10 +107,14 @@ import streamlit as st
 import plotly.express as px
 
 Providers by city
+query = """
 SELECT City,
-COUNT(*) Total_Providers
+       COUNT(*) AS Total_Providers
 FROM providers
 GROUP BY City
+"""
+
+df = run_query(query)
 
 fig = px.bar(
     df,
