@@ -106,7 +106,7 @@ if submit:
 import streamlit as st
 import plotly.express as px
 
-Providers by city
+#Providers by city
 df = run_query("""
 SELECT City,
        COUNT(*) AS Total_Providers
@@ -123,7 +123,7 @@ fig = px.bar(
 
 st.plotly_chart(fig)
 
-claim status distribution
+#claim status distribution
 df = run_query("""
 SELECT Status,
        COUNT(*) AS Count
