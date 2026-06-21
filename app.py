@@ -110,7 +110,6 @@ SELECT City,
 COUNT(*) Total_Providers
 FROM providers
 GROUP BY City
-)
 
 fig = px.bar(
     df,
