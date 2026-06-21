@@ -107,14 +107,12 @@ import streamlit as st
 import plotly.express as px
 
 Providers by city
-query = """
+df = run_query("""
 SELECT City,
        COUNT(*) AS Total_Providers
 FROM providers
 GROUP BY City
-"""
-
-df = run_query(query)
+""")
 
 fig = px.bar(
     df,
@@ -126,12 +124,12 @@ fig = px.bar(
 st.plotly_chart(fig)
 
 claim status distribution
-df = run_query(
+df = run_query("""
 SELECT Status,
-COUNT(*) Count
+       COUNT(*) AS Count
 FROM claims
 GROUP BY Status
-)
+""")
 
 fig = px.pie(
     df,
