@@ -7,242 +7,281 @@ st.set_page_config(
     layout="wide"
 )
 
-# ---------------- Sample Data ----------------
-
-providers_df = pd.DataFrame({
-    "Provider_ID":[1,2,3,4,5],
-    "Name":["ABC Hotel","Fresh Foods","City Restaurant","Food Hub","Green Kitchen"],
-    "City":["Bangalore","Chennai","Mumbai","Delhi","Bangalore"],
-    "Provider_Type":["Hotel","NGO","Restaurant","Caterer","Hotel"]
-})
-
-receivers_df = pd.DataFrame({
-    "Receiver_ID":[1,2,3,4],
-    "Name":["Helping Hands","Food Bank","Hope Trust","Care NGO"],
-    "City":["Bangalore","Chennai","Delhi","Mumbai"]
-})
-
-food_df = pd.DataFrame({
-    "Food_ID":[1,2,3,4,5],
-    "Food_Name":["Rice","Chapati","Biryani","Salad","Veg Meals"],
-    "Location":["Bangalore","Chennai","Mumbai","Delhi","Bangalore"],
-    "Food_Type":["Vegetarian","Vegetarian","Non-Vegetarian","Vegan","Vegetarian"],
-    "Quantity":[100,50,75,30,120]
-})
-
-claims_df = pd.DataFrame({
-    "Claim_ID":[1,2,3,4,5],
-    "Food_ID":[1,2,3,4,5],
-    "Status":["Approved","Pending","Approved","Rejected","Approved"]
-})
-
-# ---------------- Sidebar ----------------
-
-menu = st.sidebar.selectbox(
-    "Menu",
-    [
-        "Dashboard",
-        "Food Search",
-        "Provider Entry",
-        "Visualizations",
-        "SQL Analysis"
-    ]
-)
-
 st.title("🍲 Local Food Wastage Management System")
+
+st.write("Use the sidebar to navigate through the application.")
 
 # ---------------- Dashboard ----------------
 
-if menu == "Dashboard":
+st.header("Dashboard")
 
-    st.header("Dashboard")
+providers = 25
+receivers = 18
+food = 500
+claims = 45
 
-    c1, c2, c3, c4 = st.columns(4)
+c1, c2, c3, c4 = st.columns(4)
 
-    c1.metric("Providers", len(providers_df))
-    c2.metric("Receivers", len(receivers_df))
-    c3.metric("Food Listings", len(food_df))
-    c4.metric("Claims", len(claims_df))
+c1.metric("Providers", providers)
+c2.metric("Receivers", receivers)
+c3.metric("Food Quantity", food)
+c4.metric("Claims", claims)
 
 # ---------------- Food Search ----------------
 
-elif menu == "Food Search":
+st.header("Food Availability Search")
 
-    st.header("Food Availability Search")
+sample_data = pd.DataFrame({
+    "Location": ["Bangalore", "Chennai", "Bangalore", "Mumbai"],
+    "Food_Type": ["Vegetarian", "Vegan", "Non-Vegetarian", "Vegetarian"],
+    "Quantity": [100, 50, 75, 60]
+})
 
-    city = st.selectbox(
-        "Select City",
-        food_df["Location"].unique()
-    )
+city = st.selectbox(
+    "Select City",
+    sample_data["Location"].unique()
+)
 
-    food_type = st.selectbox(
-        "Food Type",
-        ["All"] + list(food_df["Food_Type"].unique())
-    )
+food_type = st.selectbox(
+    "Food Type",
+    ["All", "Vegetarian", "Non-Vegetarian", "Vegan"]
+)
 
-    filtered = food_df[food_df["Location"] == city]
+df = sample_data[sample_data["Location"] == city]
 
-    if food_type != "All":
-        filtered = filtered[
-            filtered["Food_Type"] == food_type
-        ]
+if food_type != "All":
+    df = df[df["Food_Type"] == food_type]
 
-    st.dataframe(filtered, use_container_width=True)
+st.dataframe(df)
 
-# ---------------- Provider Entry ----------------
+# ---------------- CRUD ----------------
 
-elif menu == "Provider Entry":
+st.header("Provider Entry Form")
 
-    st.header("Provider Entry Form")
+with st.form("provider_form"):
 
-    with st.form("provider_form"):
+    pid = st.number_input("Provider ID", step=1)
 
-        pid = st.number_input(
-            "Provider ID",
-            step=1
-        )
+    name = st.text_input("Provider Name")
 
-        name = st.text_input(
-            "Provider Name"
-        )
+    ptype = st.text_input("Provider Type")
 
-        ptype = st.text_input(
-            "Provider Type"
-        )
+    city_input = st.text_input("City")
 
-        city = st.text_input(
-            "City"
-        )
+    contact = st.text_input("Contact")
 
-        contact = st.text_input(
-            "Contact"
-        )
+    submit = st.form_submit_button("Add Provider")
 
-        submit = st.form_submit_button(
-            "Add Provider"
-        )
-
-    if submit:
-        st.success(
-            f"Provider '{name}' Added Successfully!"
-        )
+if submit:
+    st.success("Provider Added Successfully")
 
 # ---------------- Visualizations ----------------
 
-elif menu == "Visualizations":
+st.header("Visualizations")
 
-    st.header("Visualizations")
+provider_df = pd.DataFrame({
+    "City": ["Bangalore", "Chennai", "Mumbai"],
+    "Total_Providers": [12, 8, 10]
+})
 
-    city_counts = (
-        providers_df.groupby("City")
-        .size()
-        .reset_index(name="Total Providers")
-    )
+fig = px.bar(
+    provider_df,
+    x="City",
+    y="Total_Providers",
+    title="Providers by City"
+)
 
-    fig1 = px.bar(
-        city_counts,
-        x="City",
-        y="Total Providers",
-        title="Providers by City"
-    )
+st.plotly_chart(fig)
 
-    st.plotly_chart(
-        fig1,
-        use_container_width=True
-    )
+claim_df = pd.DataFrame({
+    "Status": ["Pending", "Approved", "Rejected"],
+    "Count": [15, 25, 5]
+})
 
-    status_counts = (
-        claims_df["Status"]
-        .value_counts()
-        .reset_index()
-    )
+fig2 = px.pie(
+    claim_df,
+    values="Count",
+    names="Status",
+    title="Claim Status Distribution"
+)
 
-    status_counts.columns = [
-        "Status",
-        "Count"
-    ]
-
-    fig2 = px.pie(
-        status_counts,
-        names="Status",
-        values="Count",
-        title="Claim Status Distribution"
-    )
-
-    st.plotly_chart(
-        fig2,
-        use_container_width=True
-    )
+st.plotly_chart(fig2)
 
 # ---------------- SQL Analysis ----------------
 
-elif menu == "SQL Analysis":
+st.header("SQL Analysis - 15 Queries")
 
-    st.header("SQL Analysis - 15 Queries")
+food_data = pd.DataFrame({
+    "Food_ID":[1,2,3,4,5,6],
+    "Food_Name":["Rice","Biryani","Salad","Chapati","Pasta","Meals"],
+    "Location":["Bangalore","Chennai","Mumbai","Bangalore","Mumbai","Chennai"],
+    "Food_Type":["Vegetarian","Non-Vegetarian","Vegan","Vegetarian","Vegetarian","Vegetarian"],
+    "Quantity":[100,80,40,60,70,90]
+})
 
-    queries = {
-        "1. Total Providers":
-            len(providers_df),
+provider_data = pd.DataFrame({
+    "Provider_ID":[1,2,3,4,5],
+    "Provider_Name":["Hotel A","NGO B","Restaurant C","Hotel D","NGO E"],
+    "City":["Bangalore","Chennai","Mumbai","Bangalore","Delhi"],
+    "Provider_Type":["Hotel","NGO","Restaurant","Hotel","NGO"]
+})
 
-        "2. Total Receivers":
-            len(receivers_df),
+receiver_data = pd.DataFrame({
+    "Receiver_ID":[1,2,3,4],
+    "Receiver_Name":["Trust A","Trust B","NGO C","Shelter D"],
+    "City":["Bangalore","Mumbai","Chennai","Delhi"]
+})
 
-        "3. Total Food Listings":
-            len(food_df),
+claim_data = pd.DataFrame({
+    "Claim_ID":[1,2,3,4,5],
+    "Food_ID":[1,2,3,1,5],
+    "Status":["Approved","Pending","Approved","Rejected","Approved"]
+})
 
-        "4. Total Claims":
-            len(claims_df),
+queries = {
 
-        "5. Providers by City":
-            providers_df.groupby("City").size(),
+    "1. Total Providers":
+        pd.DataFrame({"Total Providers":[len(provider_data)]}),
 
-        "6. Receivers by City":
-            receivers_df.groupby("City").size(),
+    "2. Total Receivers":
+        pd.DataFrame({"Total Receivers":[len(receiver_data)]}),
 
-        "7. Food Quantity Available":
-            food_df["Quantity"].sum(),
+    "3. Total Food Listings":
+        pd.DataFrame({"Food Listings":[len(food_data)]}),
 
-        "8. Food Types Count":
-            food_df["Food_Type"].value_counts(),
+    "4. Total Food Quantity":
+        pd.DataFrame({"Total Quantity":[food_data["Quantity"].sum()]}),
 
-        "9. Average Quantity":
-            food_df["Quantity"].mean(),
+    "5. Providers per City":
+        provider_data.groupby("City").size().reset_index(name="Count"),
 
-        "10. Maximum Quantity":
-            food_df["Quantity"].max(),
+    "6. Receivers per City":
+        receiver_data.groupby("City").size().reset_index(name="Count"),
 
-        "11. Minimum Quantity":
-            food_df["Quantity"].min(),
+    "7. Food Listings per City":
+        food_data.groupby("Location").size().reset_index(name="Listings"),
 
-        "12. Approved Claims":
-            len(claims_df[
-                claims_df["Status"]=="Approved"
-            ]),
+    "8. Quantity by City":
+        food_data.groupby("Location")["Quantity"].sum().reset_index(),
 
-        "13. Pending Claims":
-            len(claims_df[
-                claims_df["Status"]=="Pending"
-            ]),
+    "9. Food Type Distribution":
+        food_data.groupby("Food_Type").size().reset_index(name="Count"),
 
-        "14. Rejected Claims":
-            len(claims_df[
-                claims_df["Status"]=="Rejected"
-            ]),
+    "10. Average Quantity":
+        pd.DataFrame({"Average Quantity":[food_data["Quantity"].mean()]}),
 
-        "15. Food by Location":
-            food_df.groupby("Location").size()
-    }
+    "11. Maximum Quantity":
+        pd.DataFrame({"Maximum Quantity":[food_data["Quantity"].max()]}),
 
-    for title, result in queries.items():
+    "12. Minimum Quantity":
+        pd.DataFrame({"Minimum Quantity":[food_data["Quantity"].min()]}),
 
-        st.subheader(title)
+    "13. Claims by Status":
+        claim_data.groupby("Status").size().reset_index(name="Count"),
 
-        if isinstance(
+    "14. Approved Claims":
+        pd.DataFrame({
+            "Approved Claims":[
+                len(claim_data[
+                    claim_data["Status"]=="Approved"
+                ])
+            ]
+        }),
+
+    "15. Top Food Quantities":
+        food_data.sort_values(
+            "Quantity",
+            ascending=False
+        )[["Food_Name","Quantity"]]
+}
+
+selected_query = st.selectbox(
+    "Select Query",
+    list(queries.keys())
+)
+
+result = queries[selected_query]
+
+st.dataframe(
+    result,
+    use_container_width=True
+)
+
+# ---------------- Dynamic Graphs ----------------
+
+st.subheader("Visualization")
+
+try:
+
+    if selected_query == "5. Providers per City":
+
+        fig = px.bar(
             result,
-            (pd.Series, pd.DataFrame)
-        ):
-            st.dataframe(result)
-        else:
-            st.write(result)
+            x="City",
+            y="Count",
+            title="Providers by City"
+        )
+        st.plotly_chart(fig)
 
-        st.markdown("---")
+    elif selected_query == "6. Receivers per City":
+
+        fig = px.bar(
+            result,
+            x="City",
+            y="Count",
+            title="Receivers by City"
+        )
+        st.plotly_chart(fig)
+
+    elif selected_query == "7. Food Listings per City":
+
+        fig = px.bar(
+            result,
+            x="Location",
+            y="Listings",
+            title="Food Listings by City"
+        )
+        st.plotly_chart(fig)
+
+    elif selected_query == "8. Quantity by City":
+
+        fig = px.bar(
+            result,
+            x="Location",
+            y="Quantity",
+            title="Food Quantity by City"
+        )
+        st.plotly_chart(fig)
+
+    elif selected_query == "9. Food Type Distribution":
+
+        fig = px.pie(
+            result,
+            names="Food_Type",
+            values="Count",
+            title="Food Type Distribution"
+        )
+        st.plotly_chart(fig)
+
+    elif selected_query == "13. Claims by Status":
+
+        fig = px.pie(
+            result,
+            names="Status",
+            values="Count",
+            title="Claims Status Distribution"
+        )
+        st.plotly_chart(fig)
+
+    elif selected_query == "15. Top Food Quantities":
+
+        fig = px.bar(
+            result,
+            x="Food_Name",
+            y="Quantity",
+            title="Food Quantities"
+        )
+        st.plotly_chart(fig)
+
+except:
+    pass
