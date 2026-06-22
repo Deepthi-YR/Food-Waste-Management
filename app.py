@@ -7,276 +7,242 @@ st.set_page_config(
     layout="wide"
 )
 
-st.title("🍲 Local Food Wastage Management System")
+# ---------------- Sample Data ----------------
 
-st.write("Use the sidebar to navigate through the application.")
+providers_df = pd.DataFrame({
+    "Provider_ID":[1,2,3,4,5],
+    "Name":["ABC Hotel","Fresh Foods","City Restaurant","Food Hub","Green Kitchen"],
+    "City":["Bangalore","Chennai","Mumbai","Delhi","Bangalore"],
+    "Provider_Type":["Hotel","NGO","Restaurant","Caterer","Hotel"]
+})
+
+receivers_df = pd.DataFrame({
+    "Receiver_ID":[1,2,3,4],
+    "Name":["Helping Hands","Food Bank","Hope Trust","Care NGO"],
+    "City":["Bangalore","Chennai","Delhi","Mumbai"]
+})
+
+food_df = pd.DataFrame({
+    "Food_ID":[1,2,3,4,5],
+    "Food_Name":["Rice","Chapati","Biryani","Salad","Veg Meals"],
+    "Location":["Bangalore","Chennai","Mumbai","Delhi","Bangalore"],
+    "Food_Type":["Vegetarian","Vegetarian","Non-Vegetarian","Vegan","Vegetarian"],
+    "Quantity":[100,50,75,30,120]
+})
+
+claims_df = pd.DataFrame({
+    "Claim_ID":[1,2,3,4,5],
+    "Food_ID":[1,2,3,4,5],
+    "Status":["Approved","Pending","Approved","Rejected","Approved"]
+})
+
+# ---------------- Sidebar ----------------
+
+menu = st.sidebar.selectbox(
+    "Menu",
+    [
+        "Dashboard",
+        "Food Search",
+        "Provider Entry",
+        "Visualizations",
+        "SQL Analysis"
+    ]
+)
+
+st.title("🍲 Local Food Wastage Management System")
 
 # ---------------- Dashboard ----------------
 
-st.header("Dashboard")
+if menu == "Dashboard":
 
-providers = 25
-receivers = 18
-food = 500
-claims = 45
+    st.header("Dashboard")
 
-c1, c2, c3, c4 = st.columns(4)
+    c1, c2, c3, c4 = st.columns(4)
 
-c1.metric("Providers", providers)
-c2.metric("Receivers", receivers)
-c3.metric("Food Quantity", food)
-c4.metric("Claims", claims)
+    c1.metric("Providers", len(providers_df))
+    c2.metric("Receivers", len(receivers_df))
+    c3.metric("Food Listings", len(food_df))
+    c4.metric("Claims", len(claims_df))
 
 # ---------------- Food Search ----------------
 
-st.header("Food Availability Search")
+elif menu == "Food Search":
 
-sample_data = pd.DataFrame({
-    "Location": ["Bangalore", "Chennai", "Bangalore", "Mumbai"],
-    "Food_Type": ["Vegetarian", "Vegan", "Non-Vegetarian", "Vegetarian"],
-    "Quantity": [100, 50, 75, 60]
-})
+    st.header("Food Availability Search")
 
-city = st.selectbox(
-    "Select City",
-    sample_data["Location"].unique()
-)
+    city = st.selectbox(
+        "Select City",
+        food_df["Location"].unique()
+    )
 
-food_type = st.selectbox(
-    "Food Type",
-    ["All", "Vegetarian", "Non-Vegetarian", "Vegan"]
-)
+    food_type = st.selectbox(
+        "Food Type",
+        ["All"] + list(food_df["Food_Type"].unique())
+    )
 
-df = sample_data[sample_data["Location"] == city]
+    filtered = food_df[food_df["Location"] == city]
 
-if food_type != "All":
-    df = df[df["Food_Type"] == food_type]
+    if food_type != "All":
+        filtered = filtered[
+            filtered["Food_Type"] == food_type
+        ]
 
-st.dataframe(df)
+    st.dataframe(filtered, use_container_width=True)
 
-# ---------------- CRUD ----------------
+# ---------------- Provider Entry ----------------
 
-st.header("Provider Entry Form")
+elif menu == "Provider Entry":
 
-with st.form("provider_form"):
+    st.header("Provider Entry Form")
 
-    pid = st.number_input("Provider ID", step=1)
+    with st.form("provider_form"):
 
-    name = st.text_input("Provider Name")
+        pid = st.number_input(
+            "Provider ID",
+            step=1
+        )
 
-    ptype = st.text_input("Provider Type")
+        name = st.text_input(
+            "Provider Name"
+        )
 
-    city_input = st.text_input("City")
+        ptype = st.text_input(
+            "Provider Type"
+        )
 
-    contact = st.text_input("Contact")
+        city = st.text_input(
+            "City"
+        )
 
-    submit = st.form_submit_button("Add Provider")
+        contact = st.text_input(
+            "Contact"
+        )
 
-if submit:
-    st.success("Provider Added Successfully")
+        submit = st.form_submit_button(
+            "Add Provider"
+        )
+
+    if submit:
+        st.success(
+            f"Provider '{name}' Added Successfully!"
+        )
 
 # ---------------- Visualizations ----------------
 
-st.header("Visualizations")
+elif menu == "Visualizations":
 
-provider_df = pd.DataFrame({
-    "City": ["Bangalore", "Chennai", "Mumbai"],
-    "Total_Providers": [12, 8, 10]
-})
+    st.header("Visualizations")
 
-fig = px.bar(
-    provider_df,
-    x="City",
-    y="Total_Providers",
-    title="Providers by City"
-)
+    city_counts = (
+        providers_df.groupby("City")
+        .size()
+        .reset_index(name="Total Providers")
+    )
 
-st.plotly_chart(fig)
+    fig1 = px.bar(
+        city_counts,
+        x="City",
+        y="Total Providers",
+        title="Providers by City"
+    )
 
-claim_df = pd.DataFrame({
-    "Status": ["Pending", "Approved", "Rejected"],
-    "Count": [15, 25, 5]
-})
+    st.plotly_chart(
+        fig1,
+        use_container_width=True
+    )
 
-fig2 = px.pie(
-    claim_df,
-    values="Count",
-    names="Status",
-    title="Claim Status Distribution"
-)
+    status_counts = (
+        claims_df["Status"]
+        .value_counts()
+        .reset_index()
+    )
 
-st.plotly_chart(fig2)
+    status_counts.columns = [
+        "Status",
+        "Count"
+    ]
+
+    fig2 = px.pie(
+        status_counts,
+        names="Status",
+        values="Count",
+        title="Claim Status Distribution"
+    )
+
+    st.plotly_chart(
+        fig2,
+        use_container_width=True
+    )
 
 # ---------------- SQL Analysis ----------------
 
 elif menu == "SQL Analysis":
 
-st.header("SQL Analysis - All 15 Queries")
+    st.header("SQL Analysis - 15 Queries")
 
     queries = {
+        "1. Total Providers":
+            len(providers_df),
 
-        "1. Number of Providers in Each City":
-        """
-        SELECT City,
-               COUNT(*) AS Total_Providers
-        FROM providers
-        GROUP BY City
-        ORDER BY Total_Providers DESC
-        """,
+        "2. Total Receivers":
+            len(receivers_df),
 
-        "2. Number of Receivers in Each City":
-        """
-        SELECT City,
-               COUNT(*) AS Total_Receivers
-        FROM receivers
-        GROUP BY City
-        ORDER BY Total_Receivers DESC
-        """,
+        "3. Total Food Listings":
+            len(food_df),
 
-        "3. Provider Type Contributing Most Food":
-        """
-        SELECT Provider_Type,
-               SUM(Quantity) AS Total_Food_Donated
-        FROM food_listings
-        GROUP BY Provider_Type
-        ORDER BY Total_Food_Donated DESC
-        """,
+        "4. Total Claims":
+            len(claims_df),
 
-        "4. Contact Information of Providers in Chicago":
-        """
-        SELECT Name,
-               Type,
-               Contact
-        FROM providers
-        WHERE City='Chicago'
-        """,
+        "5. Providers by City":
+            providers_df.groupby("City").size(),
 
-        "5. Receivers Claiming Most Food":
-        """
-        SELECT r.Name,
-               COUNT(c.Claim_ID) AS Total_Claims
-        FROM receivers r
-        JOIN claims c
-        ON r.Receiver_ID = c.Receiver_ID
-        GROUP BY r.Name
-        ORDER BY Total_Claims DESC
-        """,
+        "6. Receivers by City":
+            receivers_df.groupby("City").size(),
 
-        "6. Total Food Available":
-        """
-        SELECT SUM(Quantity) AS Total_Food_Available
-        FROM food_listings
-        """,
+        "7. Food Quantity Available":
+            food_df["Quantity"].sum(),
 
-        "7. City with Highest Food Listings":
-        """
-        SELECT Location,
-               COUNT(*) AS Listings
-        FROM food_listings
-        GROUP BY Location
-        ORDER BY Listings DESC
-        """,
+        "8. Food Types Count":
+            food_df["Food_Type"].value_counts(),
 
-        "8. Most Common Food Types":
-        """
-        SELECT Food_Type,
-               COUNT(*) AS Count
-        FROM food_listings
-        GROUP BY Food_Type
-        ORDER BY Count DESC
-        """,
+        "9. Average Quantity":
+            food_df["Quantity"].mean(),
 
-        "9. Claims Made Per Food Item":
-        """
-        SELECT f.Food_Name,
-               COUNT(c.Claim_ID) AS Total_Claims
-        FROM food_listings f
-        LEFT JOIN claims c
-        ON f.Food_ID = c.Food_ID
-        GROUP BY f.Food_Name
-        ORDER BY Total_Claims DESC
-        """,
+        "10. Maximum Quantity":
+            food_df["Quantity"].max(),
 
-        "10. Provider with Highest Successful Claims":
-        """
-        SELECT p.Name,
-               COUNT(*) AS Successful_Claims
-        FROM providers p
-        JOIN food_listings f
-        ON p.Provider_ID = f.Provider_ID
-        JOIN claims c
-        ON f.Food_ID = c.Food_ID
-        WHERE c.Status='Completed'
-        GROUP BY p.Name
-        ORDER BY Successful_Claims DESC
-        """,
+        "11. Minimum Quantity":
+            food_df["Quantity"].min(),
 
-        "11. Claim Status Percentage":
-        """
-        SELECT Status,
-               ROUND(
-               COUNT(*) * 100.0 /
-               (SELECT COUNT(*) FROM claims),2
-               ) AS Percentage
-        FROM claims
-        GROUP BY Status
-        """,
+        "12. Approved Claims":
+            len(claims_df[
+                claims_df["Status"]=="Approved"
+            ]),
 
-        "12. Average Quantity Claimed Per Receiver":
-        """
-        SELECT r.Name,
-               ROUND(AVG(f.Quantity),2)
-               AS Avg_Quantity
-        FROM receivers r
-        JOIN claims c
-        ON r.Receiver_ID = c.Receiver_ID
-        JOIN food_listings f
-        ON c.Food_ID = f.Food_ID
-        GROUP BY r.Name
-        ORDER BY Avg_Quantity DESC
-        """,
+        "13. Pending Claims":
+            len(claims_df[
+                claims_df["Status"]=="Pending"
+            ]),
 
-        "13. Most Claimed Meal Type":
-        """
-        SELECT f.Meal_Type,
-               COUNT(*) AS Total_Claims
-        FROM food_listings f
-        JOIN claims c
-        ON f.Food_ID = c.Food_ID
-        GROUP BY f.Meal_Type
-        ORDER BY Total_Claims DESC
-        """,
+        "14. Rejected Claims":
+            len(claims_df[
+                claims_df["Status"]=="Rejected"
+            ]),
 
-        "14. Total Quantity Donated by Each Provider":
-        """
-        SELECT p.Name,
-               SUM(f.Quantity) AS Total_Donated
-        FROM providers p
-        JOIN food_listings f
-        ON p.Provider_ID = f.Provider_ID
-        GROUP BY p.Name
-        ORDER BY Total_Donated DESC
-        """,
-
-        "15. Food Expiring Soon":
-        """
-        SELECT Food_Name,
-               Quantity,
-               Expiry_Date
-        FROM food_listings
-        WHERE Expiry_Date <= CURDATE() + INTERVAL 3 DAY
-        """
+        "15. Food by Location":
+            food_df.groupby("Location").size()
     }
 
-    for title, query in queries.items():
+    for title, result in queries.items():
 
         st.subheader(title)
 
-        try:
-            result = run_query(query)
-            st.dataframe(result, use_container_width=True)
-
-        except Exception as e:
-            st.error(f"Error: {e}")
+        if isinstance(
+            result,
+            (pd.Series, pd.DataFrame)
+        ):
+            st.dataframe(result)
+        else:
+            st.write(result)
 
         st.markdown("---")
